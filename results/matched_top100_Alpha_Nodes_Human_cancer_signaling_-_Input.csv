@@ -1,0 +1,16 @@
+Alpha_Node,Total_Support,Hugo Symbol,Is Oncogene,Is Tumor Suppressor Gene,Match Source
+SHIP,-294,INPP5D,No,No,Gene Alias
+ATM,-308,ATM,No,Yes,Hugo Symbol
+PTEN,-320,PTEN,No,Yes,Hugo Symbol
+TRAF3,-321,TRAF3,No,Yes,Hugo Symbol
+RB,-322,RB1,No,Yes,Gene Alias
+HEY1,-323,HEY1,No,No,Hugo Symbol
+ROC1,-328,RIT1,Yes,No,Gene Alias
+GAP,-330,RASA1,No,Yes,Gene Alias
+CHN1,-330,CHN1,No,No,Hugo Symbol
+LZK,-334,MAP3K13,Yes,No,Gene Alias
+BCR,-334,BCR,Yes,No,Hugo Symbol
+PTP1B,-335,PTPN1,Yes,Yes,Gene Alias
+PIK3CD,-336,PIK3CD,Yes,No,Hugo Symbol
+CARM1,-336,CARM1,No,No,Hugo Symbol
+LARG,-342,ARHGEF12,Yes,Yes,Gene Alias

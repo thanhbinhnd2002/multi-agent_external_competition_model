@@ -1,58 +1,63 @@
-import os
+# 🧪 Ý tưởng:
+# Đọc 2 file csv:
+# - csv1 chứa thông tin Alpha_Node và Total_Support
+# - csv2 chứa danh sách các gene đã biết là Oncogene hoặc Tumor Suppressor Gene + Gene Aliases
+# Ta lọc top 100 Alpha_Node có Total_Support cao nhất và đối chiếu Alpha_Node đó với Hugo Symbol hoặc Gene Aliases
+
 import pandas as pd
+import os
 
-# **1. Đọc file kết quả cạnh tranh**
-competition_file = "/output_multi_beta/Human Gene Regulatory Network - Input.csv"
+# 📥 Bước 1: Đọc dữ liệu từ 2 file csv
+csv1_path = "./output_multi_beta/Human Gene Regulatory Network - Input.csv"
+csv2_path = "Cancer gene OncoKB30012025.xlsx"
 
-# **Lấy tên dataset từ tên file để đặt tên file kết quả**
-dataname = os.path.basename(competition_file).replace(".csv", "")
+df1 = pd.read_csv(csv1_path)
+df2 = pd.read_excel(csv2_path, usecols=["Hugo Symbol", "Is Oncogene", "Is Tumor Suppressor Gene", "Gene Aliases"])
 
-# **Đọc dữ liệu từ file kết quả cạnh tranh**
-competition_df = pd.read_csv(competition_file, sep="\t")  # Giả sử file CSV có dấu tab
+# 📊 Bước 2: Lọc top 100 Alpha_Node có tổng hỗ trợ lớn nhất
+df1_sorted = df1.sort_values(by="Total_Support", ascending=False).head(100)
 
-# **2. Đọc file đối chiếu**
-oncogene_file = "Cancer gene OncoKB30012025.xlsx"
-oncogene_df = pd.read_excel(oncogene_file)
+# 🔁 Chuẩn hóa tên để so khớp
+df1_sorted['Alpha_Node'] = df1_sorted['Alpha_Node'].str.upper()
+df2['Hugo Symbol'] = df2['Hugo Symbol'].str.upper()
 
-# **3. Chuẩn hóa dữ liệu trong file đối chiếu**
-# Chọn các cột quan trọng và loại bỏ 'hsa:' khỏi mã gen trong file kết quả
-oncogene_df = oncogene_df[['Hugo Symbol', 'Entrez Gene ID', 'Is Oncogene', 'Is Tumor Suppressor Gene']]
-oncogene_df['Entrez Gene ID'] = oncogene_df['Entrez Gene ID'].astype(str)  # Chuyển mã gen thành chuỗi
-oncogene_df['Is Oncogene'] = oncogene_df['Is Oncogene'].astype(str).str.strip().str.capitalize()  # Chuẩn hóa dữ liệu
-oncogene_df['Is Tumor Suppressor Gene'] = oncogene_df['Is Tumor Suppressor Gene'].astype(str).str.strip().str.capitalize()
+# 📌 Tạo ánh xạ từ Hugo Symbol và từng alias tới thông tin gene
+gene_map = {}
+for _, row in df2.iterrows():
+    hugo = row["Hugo Symbol"]
+    entry = {
+        "Hugo Symbol": hugo,
+        "Is Oncogene": row["Is Oncogene"],
+        "Is Tumor Suppressor Gene": row["Is Tumor Suppressor Gene"]
+    }
+    gene_map[hugo] = {**entry, "Match Source": "Hugo Symbol"}
+    if pd.notna(row["Gene Aliases"]):
+        aliases = [alias.strip().upper() for alias in str(row["Gene Aliases"]).split(",")]
+        for alias in aliases:
+            if alias not in gene_map:
+                gene_map[alias] = {**entry, "Match Source": "Gene Alias"}
 
-# **4. Xử lý dữ liệu file kết quả cạnh tranh**
-# Loại bỏ 'hsa:' khỏi tên gen trong file kết quả
-competition_df['Gen A'] = competition_df['Gen A'].str.replace('hsa:', '', regex=True)
-competition_df['Gen B'] = competition_df['Gen B'].str.replace('hsa:', '', regex=True)
+# 🔍 Bước 3: Đối chiếu Alpha_Node với Hugo Symbol hoặc Gene Aliases
+matched_rows = []
+for _, row in df1_sorted.iterrows():
+    alpha = row["Alpha_Node"]
+    if alpha in gene_map:
+        matched_info = gene_map[alpha]
+        matched_rows.append({
+            "Alpha_Node": alpha,
+            "Total_Support": row["Total_Support"],
+            **matched_info
+        })
 
-# **5. Gán loại gen (Oncogene / Tumor Suppressor / Unknown)**
-def get_gene_type(gene_id):
-    """Xác định loại gen từ file đối chiếu."""
-    match = oncogene_df[oncogene_df['Hugo Symbol'] == gene_id]
-    if not match.empty:
-        types = []
-        if match['Is Oncogene'].values[0] == "Yes":  # Kiểm tra giá trị là "Yes"
-            types.append("Oncogene")
-        if match['Is Tumor Suppressor Gene'].values[0] == "Yes":  # Kiểm tra giá trị là "Yes"
-            types.append("Tumor Suppressor")
-        return "+".join(types) if types else "Unknown"
-    return "Unknown"
+# 📄 Bước 4: Tạo DataFrame kết quả
+merged = pd.DataFrame(matched_rows)
 
-# Áp dụng cho từng gene trong danh sách
-competition_df['Type A'] = competition_df['Gen A'].apply(get_gene_type)
-competition_df['Type B'] = competition_df['Gen B'].apply(get_gene_type)
+# 📁 Bước 5: Tạo thư mục và tên file output
+csv1_name = os.path.splitext(os.path.basename(csv1_path))[0].replace(" ", "_")
+output_dir = "results"
+os.makedirs(output_dir, exist_ok=True)
+output_path = os.path.join(output_dir, f"matched_top100_Alpha_Nodes_{csv1_name}.csv")
 
-# **6. Sắp xếp theo Strength từ cao xuống thấp**
-competition_df = competition_df.sort_values(by="Strength", ascending=False)
-
-# **7. Tạo thư mục lưu kết quả nếu chưa tồn tại**
-output_folder = "final_results"
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
-
-# **8. Xuất file kết quả**
-output_file = os.path.join(output_folder, f"{dataname}.csv")
-competition_df.to_csv(output_file, index=False, sep="\t")
-
-print(f"Kết quả đã được lưu tại: {output_file}")
+# 💾 Bước 6: Ghi kết quả
+merged.to_csv(output_path, index=False)
+print(f"✅ Hoàn tất! Kết quả đã được lưu vào: {output_path}")

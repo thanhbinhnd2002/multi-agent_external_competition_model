@@ -1,0 +1,9 @@
+Alpha_Node,Total_Support,Hugo Symbol,Is Oncogene,Is Tumor Suppressor Gene
+ATM,-308,ATM,No,Yes
+PTEN,-320,PTEN,No,Yes
+TRAF3,-321,TRAF3,No,Yes
+HEY1,-323,HEY1,No,No
+CHN1,-330,CHN1,No,No
+BCR,-334,BCR,Yes,No
+PIK3CD,-336,PIK3CD,Yes,No
+CARM1,-336,CARM1,No,No

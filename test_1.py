@@ -10,12 +10,13 @@ import pandas as pd
 from tqdm import tqdm
 from joblib import Parallel, delayed
 from multiprocessing import cpu_count
+import time
 
 INF = 10000
 EPSILON = 0.1
 DELTA = 0.2
-MAX_ITER = 200
-TOL = 1e-6
+MAX_ITER = 10
+TOL = 1e-3
 N_BETA = 2
 
 # ✅ B1: Đọc mạng từ file
@@ -119,17 +120,21 @@ def process_alpha(alpha_node, G, all_nodes):
     alpha_idx = node_order.index(alpha_node)
     x_state = np.zeros(len(node_order))
     x_state[alpha_idx] = 1
+    print(f"🧠 Đang xử lý Alpha: {alpha_node} (index: {alpha_idx})")
+    start = time.time()
     for i in range(0, len(all_nodes), N_BETA):
         beta_nodes = all_nodes[i:i+N_BETA]
         if alpha_node in beta_nodes:
             continue
         x_state = simulate_competition(G, beta_nodes, x_state, alpha_idx)
     support = compute_total_support(x_state, alpha_idx)
+    elapsed = time.time() - start
+    print(f"✅ Alpha {alpha_node} xử lý xong trong {elapsed:.2f} giây")
     return {"Alpha_Node": alpha_node, "Total_Support": support}
 
 # ✅ B7: Main
 def main():
-    input_folder = "data_1"
+    input_folder = "data_3"
     output_folder = "output_multi_beta"
     os.makedirs(output_folder, exist_ok=True)
 
